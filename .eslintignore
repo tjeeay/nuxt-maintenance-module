@@ -1,0 +1,6 @@
+node_modules/
+lib/
+dist/
+bower_components/
+vendors/
+test/
