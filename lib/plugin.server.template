@@ -1,0 +1,33 @@
+import fs from 'fs'
+import path from 'path'
+import { EOL } from 'os'
+import middleware from './middleware'
+
+const options = <%= JSON.stringify(options) %>
+
+middleware.maintenance = function MaintenanceMiddleware({ req, redirect }) {
+  const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  if (clientIP === '127.0.0.1') {
+    return true
+  }
+
+  let pass = false
+
+  try {
+    const filepath = path.join(process.env.PWD, options.ipWhiteListFilename)
+    const isFileExists = fs.existsSync(filepath)
+    if (isFileExists) {
+      const whiteListIPs = fs.readFileSync(filepath, { encoding: 'utf8' })
+      const ips = whiteListIPs.split(EOL).filter(ip => ip)
+
+      pass = ips.includes(clientIP)
+    }
+  } catch(e) {
+    console.warn('[maintenance.server] failed to check maintenance mode: ', e)
+  }
+
+  if (!pass) {
+    redirect(options.maintenancePage)
+  }
+  return pass
+}

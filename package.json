@@ -1,6 +1,6 @@
 {
   "name": "nuxt-maintenance-module",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A Nuxt.js module that can easily enable maintenance mode while upgrading your system.",
   "main": "lib/module.js",
   "scripts": {
