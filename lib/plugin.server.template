@@ -5,29 +5,80 @@ import middleware from './middleware'
 
 const options = <%= JSON.stringify(options) %>
 
-middleware.maintenance = function MaintenanceMiddleware({ req, redirect }) {
-  const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-  if (clientIP === '127.0.0.1') {
-    return true
+function checkMaintenanceMode(req) {
+  const isInMaintenanceMode = process.env.MAINTENANCE_MODE === 'enable'
+  if (!isInMaintenanceMode) {
+    return {
+      isInMaintenanceMode
+    }
   }
 
-  let pass = false
+  /**
+   * Get real Client IP from X-Forwarded-For header
+   * Example: X-Forwarded-For: <client>, <proxy1>, <proxy2>
+   * https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/X-Forwarded-For
+   */
+  const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  const realIP = clientIP.split(',').map(ip => ip.trim()).shift()
+  if (realIP === '127.0.0.1') {
+    return {
+      isInMaintenanceMode,
+      isInWhiteList: true,
+    }
+  }
 
   try {
     const filepath = path.join(process.env.PWD, options.ipWhiteListFilename)
     const isFileExists = fs.existsSync(filepath)
-    if (isFileExists) {
-      const whiteListIPs = fs.readFileSync(filepath, { encoding: 'utf8' })
-      const ips = whiteListIPs.split(EOL).filter(ip => ip)
 
-      pass = ips.includes(clientIP)
+    if (!isFileExists) {
+      return {
+        isInMaintenanceMode,
+        isInWhiteList: false,
+      }
+    }
+
+    const whiteListIPs = fs.readFileSync(filepath, { encoding: 'utf8' })
+    const ips = whiteListIPs.split(EOL).filter(ip => ip)
+
+    return {
+      isInMaintenanceMode,
+      isInWhiteList: ips.includes(realIP),
     }
   } catch(e) {
     console.warn('[maintenance.server] failed to check maintenance mode: ', e)
   }
 
-  if (!pass) {
-    redirect(options.maintenancePage)
+  return {
+    isInMaintenanceMode,
+    isInWhiteList: false,
   }
-  return pass
+}
+
+middleware.maintenance = function MaintenanceMiddleware({ req, route, redirect }) {
+  const isInMaintenancePage = route.path === options.maintenancePage
+  const { isInMaintenanceMode, isInWhiteList } = checkMaintenanceMode(req)
+
+  // check whether MAINTENANCE MODE has enabled
+  if (!isInMaintenanceMode) {
+
+    // if in maintenance page, redirect to homepage directly
+    if (isInMaintenancePage) {
+      return redirect(options.homepage)
+    }
+
+    // otherwise, do nothing
+    return
+  }
+
+  if (!isInWhiteList) {
+    return redirect(options.maintenancePage)
+  } else if (isInMaintenancePage) {
+    return redirect(options.homepage)
+  }
+}
+
+export default function(context, inject) {
+  inject('checkMaintenanceMode', checkMaintenanceMode)
+  context.$checkMaintenanceMode = checkMaintenanceMode
 }

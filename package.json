@@ -1,7 +1,7 @@
 {
   "name": "nuxt-maintenance-module",
-  "version": "0.1.0",
-  "description": "A Nuxt.js module that can easily enable maintenance mode while upgrading your system.",
+  "version": "0.1.2",
+  "description": "A Nuxt.js module that can easily enable maintenance mode while upgrading your website.",
   "main": "lib/module.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,40 +1,5 @@
 import middleware from './middleware'
 
-const options = <%= JSON.stringify(options) %>
-
-const checkMaintenanceMode = () => {
-  return new Promise(resolve => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', options.middlewarePath)
-
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === XMLHttpRequest.DONE) {
-        let pass = false
-        if (xhr.status === 200) {
-          try {
-            const data = JSON.parse(xhr.responseText)
-            pass = data.pass
-          } catch (error) {
-            console.warn('[maintenance.client] failed to check maintenance mode: ', error)
-          }
-        }
-        resolve(pass)
-      }
-    }
-
-    xhr.ontimeout = function() {
-      resolve(false)
-    }
-    
-    xhr.send()
-  })
-}
-
 middleware.maintenance = function MaintenanceMiddleware() {
-  return checkMaintenanceMode().then(pass => {
-    if (!pass) {
-      window.location.href = options.maintenancePage
-    }
-    return pass
-  })
+  // do nothing in client side
 }
