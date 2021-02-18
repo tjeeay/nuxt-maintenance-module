@@ -1,5 +1,0 @@
-import middleware from './middleware'
-
-middleware.maintenance = function MaintenanceMiddleware() {
-  // do nothing in client side
-}
